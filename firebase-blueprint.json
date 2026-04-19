@@ -1,0 +1,58 @@
+{
+  "entities": {
+    "Category": {
+      "title": "Category",
+      "description": "Category of expense with its monthly average",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "monthlyAverage": { "type": "number" }
+      },
+      "required": ["id", "name", "monthlyAverage"]
+    },
+    "Grant": {
+      "title": "Grant",
+      "description": "Public grant or parliamentary amendment",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "color": { "type": "string" },
+        "totalValue": { "type": "number" },
+        "periodMonths": { "type": "number" },
+        "allocations": { 
+          "type": "array",
+          "items": { 
+            "type": "object",
+            "properties": {
+              "categoryId": { "type": "string" },
+              "amount": { "type": "number" }
+            },
+            "required": ["categoryId", "amount"]
+          }
+        },
+        "startMonth": { "type": "number" },
+        "type": { "type": "string", "enum": ["Emenda parlamentar", "Subvenção municipal", "Emenda Impositiva (vereadores)"] },
+        "nature": { "type": "string", "enum": ["Custeio", "Investimento"] },
+        "accountability": { "type": "string", "enum": ["Direta com o município", "Via São Paulo Sem Papel"] },
+        "status": { "type": "string", "enum": ["Oficiada", "Em Elaboração", "Paga"] }
+      },
+      "required": ["id", "name", "color", "totalValue", "periodMonths", "allocations", "startMonth", "type", "nature", "accountability", "status"]
+    }
+  },
+  "firestore": {
+    "/categories/{categoryId}": {
+      "schema": "Category",
+      "description": "Customizable expense categories"
+    },
+    "/grants/{grantId}": {
+      "schema": "Grant",
+      "description": "Parliamentary amendments and grants"
+    },
+    "/authorized_users/{email}": {
+      "schema": "object",
+      "description": "Whitelist of emails allowed to access the system"
+    }
+  }
+}

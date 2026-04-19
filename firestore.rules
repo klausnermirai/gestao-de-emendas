@@ -1,0 +1,69 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAuthorized() {
+      return isSignedIn() && (
+        request.auth.token.email == "kwarizaya@gmail.com" ||
+        exists(/databases/$(database)/documents/authorized_users/$(request.auth.token.email))
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Category Validation
+    function isValidCategory(data) {
+      return data.keys().hasAll(['id', 'name', 'monthlyAverage']) &&
+             data.keys().size() == 3 &&
+             data.id is string && data.id.size() <= 64 &&
+             data.name is string && data.name.size() <= 100 &&
+             data.monthlyAverage is number && data.monthlyAverage >= 0;
+    }
+
+    // Grant Validation
+    function isValidGrant(data) {
+      return data.keys().hasAll(['id', 'name', 'color', 'totalValue', 'periodMonths', 'allocations', 'startMonth', 'type', 'nature', 'accountability', 'status']) &&
+             data.keys().size() == 11 &&
+             data.id is string && data.id.size() <= 64 &&
+             data.name is string && data.name.size() <= 100 &&
+             data.color is string && data.color.matches('^#[A-Fa-f0-9]{3,6}$') &&
+             data.totalValue is number && data.totalValue >= 0 &&
+             data.periodMonths is number && data.periodMonths >= 1 && data.periodMonths <= 24 &&
+             data.allocations is list && data.allocations.size() <= 30 &&
+             data.startMonth is number && data.startMonth >= 0 && data.startMonth <= 11 &&
+             data.type in ["Emenda parlamentar", "Subvenção municipal", "Emenda Impositiva (vereadores)"] &&
+             data.nature in ["Custeio", "Investimento"] &&
+             data.accountability in ["Direta com o município", "Via São Paulo Sem Papel"] &&
+             data.status in ["Oficiada", "Em Elaboração", "Paga"];
+    }
+
+    // Routes
+    match /authorized_users/{email} {
+      allow read: if isSignedIn();
+      allow write: if isAuthorized();
+    }
+
+    match /categories/{categoryId} {
+      allow read: if isAuthorized();
+      allow create, update: if isAuthorized() && isValidCategory(request.resource.data) && isValidId(categoryId);
+      allow delete: if isAuthorized();
+    }
+
+    match /grants/{grantId} {
+      allow read: if isAuthorized();
+      allow create, update: if isAuthorized() && isValidGrant(request.resource.data) && isValidId(grantId);
+      allow delete: if isAuthorized();
+    }
+  }
+}
